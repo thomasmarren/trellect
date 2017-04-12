@@ -1,0 +1,18 @@
+{
+  "name": "Trellect",
+  "version": "0.1",
+  "manifest_version" : 2,
+  "description": "Organize Trello Cards",
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://trello.com/*"],
+      "css": ["trellect.css"],
+      "js": ["main.js"]
+    }
+  ],
+  "web_accessible_resources": ["trelloApi.js", "trellect.js", "jquery-3.2.1.min.js"]
+}

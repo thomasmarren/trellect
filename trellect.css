@@ -1,0 +1,44 @@
+#refresh-link:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+#totals-container {
+    position: fixed;
+    background-color: white;
+    width: 500px;
+    height: 500px;
+    z-index: 1;
+    left: 583px;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
+.totals-label-color {
+  margin: 0px 3px;
+  width: 42px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 3px;
+}
+
+#totals-container a {
+  width: 100%;
+  display: block;
+}
+
+#totals-data {
+  width: 100%;
+  display: inline-block;
+}
+
+#totals-data-labels, #totals-data-members {
+  width: 50%;
+  display: inline-block;
+}
+
+.totals-label {
+  display: inline-block;
+}
