@@ -1,22 +1,28 @@
 var store = {
-  authorized: false,
   labels: {},
-  labelIds: [],
-  newData: true
+  labelIds: {},
+  members: {},
+  memberIds: {}
 }
 
 $(document).ready(function(){
-  var button = document.createElement("button");
-  button.style.display = "inline";
-  button.id = 'toggle-totals-button';
-  button.onclick = toggleTotals
-  button.innerHTML = "Totals"
-  document.querySelector(".mod-left").append(button)
+  var a = document.createElement("a");
+  a.style.display = "inline";
+  a.id = 'toggle-totals-button';
+  $(a).addClass('board-header-btn')
+  a.onclick = toggleTotals
+  a.innerHTML = "<span class='icon-sm icon-totals-class board-header-btn-icon'></span><span class='board-header-btn-text'>Totals</span>"
+  document.querySelector(".mod-left").append(a)
 
   var div = document.createElement("div");
   div.id = "totals-container"
   $(div).addClass('hidden')
   document.querySelector(".mod-left").append(div)
+  
+  var p = document.createElement("p")
+  p.id = "unauthorized-msg"
+  p.innerHTML = "Please authorize Trello first!"
+  $("#totals-container").append(p)
 
   var button = document.createElement("button");
   button.id = "authorize-button"
@@ -25,6 +31,12 @@ $(document).ready(function(){
   button.innerHTML = "Authorize"
   document.querySelector("#surface").append(button)
   
+})
+
+function afterAuthorization(){
+  
+  $("#totals-container").html("")
+  
   var a = document.createElement("a");
   a.id = "refresh-link"
   a.innerHTML = "Refresh"
@@ -32,19 +44,24 @@ $(document).ready(function(){
   document.querySelector("#totals-container").append(a)
   
   var div = document.createElement("div");
+  div.id = "totals-nav"
+  $(div).html('<a id="labels-tab" onclick="showLabels()"><h3>Labels</h3></a><a id="members-tab" onclick="fetchMemberData()"><h3>Members</h3></a>')
+  document.querySelector("#totals-container").append(div)
+  
+  var div = document.createElement("div");
   div.id = "totals-data"
   document.querySelector("#totals-container").append(div)
   
-})
+  fetchInitialData()
+}
 
 
 function authorize(){
   var authenticationSuccess = function() { 
     console.log('Successful authentication');
-    store.authorized = true
     document.querySelector("#authorize-button").innerHTML = "Authorized!"
     document.querySelector("#authorize-button").disabled = true
-    fetchData()
+    afterAuthorization()
   };
   var authenticationFailure = function() { console.log('Failed authentication'); };
 
@@ -64,14 +81,22 @@ function apiError(){
   document.querySelector("#totals-data").innerHTML = "<p>Rate limit exceeded. :( Try again in 10 seconds."
 }
 
-function fetchData(){
+function fetchInitialData(){
   
   document.querySelector("#totals-data").innerHTML = "<img src='https://i.imgur.com/vUz7Lmp.gif'>"
   
-  console.log("Fetching label ids")
+  fetchCards().then(fetchLabels).then(function(){
+    showLabels()
+  })
   
-  new Promise(function(resolve, reject){
-    store.labelIds = []
+}
+
+function fetchCards(){
+  
+  console.log("Fetching card data")
+  
+  return new Promise(function(resolve, reject){
+    store.labelIds = {}
     
     Trello.get('/boards/53bee3e719ab8748f95368d9/cards', getCardsSuccess, apiError)
     
@@ -83,7 +108,18 @@ function fetchData(){
           done()
         } else {
           data[i].idLabels.forEach( label => {
-            store.labelIds.push(label)
+            if(store.labelIds[label] == undefined){
+              store.labelIds[label] = 1
+            } else {
+              store.labelIds[label] += 1
+            }
+          })
+          data[i].idMembers.forEach( member => {
+            if(store.memberIds[member] == undefined){
+              store.memberIds[member] = 1
+            } else {
+              store.memberIds[member] += 1
+            }
           })
         }
       }
@@ -92,11 +128,10 @@ function fetchData(){
         resolve(store.labelIds)
       }
     }
-  }).then(fetchLabels).then(function(){
-    show()
   })
-  
 }
+
+
 
 function fetchLabels(labelIds){
   
@@ -106,25 +141,21 @@ function fetchLabels(labelIds){
     store.labels = {}
     var counter = 0
     
-    labelIds.forEach( label => {
-      
-      Trello.get(`/labels/${label}`, getLabelSuccess, apiError)
+    for(var id in labelIds){
+      Trello.get(`/labels/${id}`, getLabelSuccess, apiError)
       
       function getLabelSuccess(data){
-        if (store.labels[data.name] == undefined){
-          store.labels[data.name] = {}
-          store.labels[data.name].color = data.color
-          store.labels[data.name].count = 1
-        } else {
-          store.labels[data.name].count += 1
-        }
+        
+        store.labels[data.name] = {}
+        store.labels[data.name].color = data.color
+        store.labels[data.name].count = store.labelIds[data.id]
+
         counter += 1
-        if(counter == labelIds.length){
+        if(counter == Object.keys(labelIds).length){
           done()
         }
       }
-    })
-    
+    }
     function done(){
       resolve()
     }
@@ -132,21 +163,11 @@ function fetchLabels(labelIds){
   })
 }
 
-function show(){
+function showLabels(){
   
-  console.log("Displaying totals")
+  console.log("Displaying labels")
   
   $('#totals-data').html('')
-  
-  var div = document.createElement("div");
-  div.id = "totals-data-labels"
-  document.querySelector("#totals-data").append(div)
-  $('#totals-data-labels').html('<h3>Labels</h3>')
-  
-  var div = document.createElement("div");
-  div.id = "totals-data-members"
-  document.querySelector("#totals-data").append(div)
-  $('#totals-data-members').html('<h3>Members</h3>')
   
   for (var label in store.labels) {
     var div = document.createElement("div");
@@ -160,10 +181,74 @@ function show(){
     document.querySelector("#totals-data").append(div)
   }
 }
+
+
+
+function fetchMemberData(){
+  if(Object.keys(store.members).length == 0){
+    console.log("Fetching member data")
+    fetchMembers(store.memberIds).then(function(){
+      showMembers()
+    })
+  } else {
+    showMembers()
+  }
+}
+
+function fetchMembers(memberIds){
   
+  console.log("Fetching members")
+  
+    return new Promise(function(resolve, reject){
+      store.members = {}
+      var counter = 0
+      
+      for(var id in memberIds){
+        Trello.get(`/members/${id}`, getMemberSuccess, apiError)
+        
+        function getMemberSuccess(data){
+          
+          store.members[data.fullName] = {}
+          store.members[data.fullName].avatarHash = data.avatarHash
+          store.members[data.fullName].count = store.memberIds[data.id]
+
+          counter += 1
+          if(counter == Object.keys(memberIds).length){
+            done()
+          }
+        }
+      }
+      
+      function done(){
+        resolve()
+      }
+      
+    })
+}
+
+function showMembers(){
+  console.log("Displaying members")
+  
+  $('#totals-data').html('')
+  
+  for (var member in store.members) {
+    var p = document.createElement("p");
+    p.innerHTML = `${member}: ${store.members[member].count}`
+    document.querySelector("#totals-data").append(p)
+  }
+}
+
+
+
 function refresh(){
   console.log('Refreshing totals')
-  fetchData()
+  store = {
+    labels: {},
+    labelIds: [],
+    members: {},
+    memberIds: []
+  }
+  fetchInitialData()
 }
 
 function toggleTotals(){

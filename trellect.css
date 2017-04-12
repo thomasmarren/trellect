@@ -1,4 +1,8 @@
-#refresh-link:hover {
+.icon-totals-class:before {
+    content: "\e932";
+}
+
+#refresh-link:hover, #labels-tab:hover, #members-tab:hover {
   cursor: pointer;
   text-decoration: underline;
 }
@@ -7,9 +11,12 @@
     position: fixed;
     background-color: white;
     width: 500px;
-    height: 500px;
+    height: 100%;
+    padding: 10px;
+    border: 2px solid black;
     z-index: 1;
     left: 583px;
+    top: 78px;
 }
 
 .hidden {
