@@ -2,25 +2,46 @@
     content: "\e932";
 }
 
+.hidden {
+  visibility: hidden;
+}
+
 #refresh-link:hover, #labels-tab:hover, #members-tab:hover {
   cursor: pointer;
   text-decoration: underline;
 }
 
 #totals-container {
-    position: fixed;
-    background-color: white;
-    width: 500px;
-    height: 100%;
-    padding: 10px;
-    border: 2px solid black;
-    z-index: 1;
-    left: 583px;
-    top: 78px;
+  position: fixed;
+  overflow: scroll;
+  background-color: white;
+  width: 500px;
+  height: 70%;
+  padding: 10px;
+  border: 2px solid black;
+  z-index: 1;
+  left: 583px;
+  top: 78px;
 }
 
-.hidden {
-  visibility: hidden;
+#totals-container a {
+  width: 100%;
+  display: block;
+}
+
+#refresh-link {
+  text-align: center;
+}
+
+#totals-nav {
+  text-align: center;
+  display: block;
+}
+
+#totals-nav a {
+  display: inline-block;
+  width: 10%;
+  margin: 10px;
 }
 
 .totals-label-color {
@@ -29,11 +50,6 @@
   height: 8px;
   display: inline-block;
   border-radius: 3px;
-}
-
-#totals-container a {
-  width: 100%;
-  display: block;
 }
 
 #totals-data {
@@ -47,5 +63,18 @@
 }
 
 .totals-label {
+  display: inline-block;
+}
+
+.members-list {
+  display: block;
+}
+
+.members-list-item {
+  display: block;
+}
+
+.member-name {
+  padding-left: 5px;
   display: inline-block;
 }

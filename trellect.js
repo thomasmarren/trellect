@@ -1,7 +1,9 @@
 var store = {
   labels: {},
+  sortedLabels: [],
   labelIds: {},
   members: {},
+  sortedMembers: [],
   memberIds: {}
 }
 
@@ -33,29 +35,6 @@ $(document).ready(function(){
   
 })
 
-function afterAuthorization(){
-  
-  $("#totals-container").html("")
-  
-  var a = document.createElement("a");
-  a.id = "refresh-link"
-  a.innerHTML = "Refresh"
-  a.onclick = refresh
-  document.querySelector("#totals-container").append(a)
-  
-  var div = document.createElement("div");
-  div.id = "totals-nav"
-  $(div).html('<a id="labels-tab" onclick="showLabels()"><h3>Labels</h3></a><a id="members-tab" onclick="fetchMemberData()"><h3>Members</h3></a>')
-  document.querySelector("#totals-container").append(div)
-  
-  var div = document.createElement("div");
-  div.id = "totals-data"
-  document.querySelector("#totals-container").append(div)
-  
-  fetchInitialData()
-}
-
-
 function authorize(){
   var authenticationSuccess = function() { 
     console.log('Successful authentication');
@@ -77,26 +56,34 @@ function authorize(){
     });
 }
 
-function apiError(){
-  document.querySelector("#totals-data").innerHTML = "<p>Rate limit exceeded. :( Try again in 10 seconds."
+function afterAuthorization(){
+  
+  $("#totals-container").html("")
+  
+  var a = document.createElement("a");
+  a.id = "refresh-link"
+  a.innerHTML = "Refresh"
+  a.onclick = refresh
+  document.querySelector("#totals-container").append(a)
+  
+  var div = document.createElement("div");
+  div.id = "totals-nav"
+  $(div).html('<a id="labels-tab" onclick="showLabels()">Label</a><a id="members-tab" onclick="fetchMemberData()">Members</a>')
+  document.querySelector("#totals-container").append(div)
+  
+  var div = document.createElement("div");
+  div.id = "totals-data"
+  document.querySelector("#totals-container").append(div)
+  
+  fetchLabelData()
 }
 
-function fetchInitialData(){
-  
-  document.querySelector("#totals-data").innerHTML = "<img src='https://i.imgur.com/vUz7Lmp.gif'>"
-  
-  fetchCards().then(fetchLabels).then(function(){
-    showLabels()
-  })
-  
-}
 
 function fetchCards(){
   
   console.log("Fetching card data")
   
   return new Promise(function(resolve, reject){
-    store.labelIds = {}
     
     Trello.get('/boards/53bee3e719ab8748f95368d9/cards', getCardsSuccess, apiError)
     
@@ -132,13 +119,21 @@ function fetchCards(){
 }
 
 
+function fetchLabelData(){
+  
+  showLoader()
+  
+  fetchCards().then(fetchLabels).then(function(){
+    showLabels()
+  })
+  
+}
 
 function fetchLabels(labelIds){
   
   console.log("Fetching labels")
   
   return new Promise(function(resolve, reject){
-    store.labels = {}
     var counter = 0
     
     for(var id in labelIds){
@@ -156,6 +151,7 @@ function fetchLabels(labelIds){
         }
       }
     }
+    
     function done(){
       resolve()
     }
@@ -167,26 +163,30 @@ function showLabels(){
   
   console.log("Displaying labels")
   
+  sortLabels(store.labels)
+  
   $('#totals-data').html('')
   
-  for (var label in store.labels) {
+  store.sortedLabels.forEach( label => {
+    
     var div = document.createElement("div");
     var span = document.createElement("span");
-    $(span).addClass(`totals-label-color card-label-${store.labels[label].color}`)
+    $(span).addClass(`totals-label-color card-label-${label[1]}`)
     var p = document.createElement("p");
     $(p).addClass(`totals-label`)
-    p.innerHTML = `${label}: ${store.labels[label].count}`
+    p.innerHTML = `${label[0]}: ${label[2]}`
     div.append(span)
     div.append(p)
     document.querySelector("#totals-data").append(div)
-  }
+    
+  })
 }
-
 
 
 function fetchMemberData(){
   if(Object.keys(store.members).length == 0){
     console.log("Fetching member data")
+    showLoader()
     fetchMembers(store.memberIds).then(function(){
       showMembers()
     })
@@ -200,7 +200,6 @@ function fetchMembers(memberIds){
   console.log("Fetching members")
   
     return new Promise(function(resolve, reject){
-      store.members = {}
       var counter = 0
       
       for(var id in memberIds){
@@ -229,15 +228,28 @@ function fetchMembers(memberIds){
 function showMembers(){
   console.log("Displaying members")
   
-  $('#totals-data').html('')
+  sortMembers(store.members)
   
-  for (var member in store.members) {
+  $("#totals-data").html("")
+  var ul = document.createElement("ul");
+  $(ul).addClass("members-list")
+  $("#totals-data").append(ul)
+  
+  store.sortedMembers.forEach( member => {
+    
+    var li = document.createElement("li");
+    $(li).addClass("members-list-item")
+    var img = document.createElement("img");
+    $(img).addClass(`member-avatar`)
+    $(img).attr("src", `https://trello-avatars.s3.amazonaws.com/${member[1]}/30.png`)
     var p = document.createElement("p");
-    p.innerHTML = `${member}: ${store.members[member].count}`
-    document.querySelector("#totals-data").append(p)
-  }
+    $(p).addClass("member-name")
+    p.innerHTML = `${member[0]}: ${member[2]}`
+    $(li).append(img)
+    $(li).append(p)
+    $(ul).append(li)
+  })
 }
-
 
 
 function refresh(){
@@ -248,26 +260,49 @@ function refresh(){
     members: {},
     memberIds: []
   }
-  fetchInitialData()
+  fetchLabelData()
 }
 
 function toggleTotals(){
   $('#totals-container').toggleClass("hidden")
 }
+
+
+function apiError(){
+  document.querySelector("#totals-data").innerHTML = "<p>Rate limit exceeded. :( Try again in 10 seconds."
+}
+
+function sortLabels(labels){
+  var sorted = [];
+  for (var label in labels) {
+    sorted.push([label, labels[label].color, labels[label].count]);
+  }
+
+  sorted.sort(function(a, b) {
+    return b[2] - a[2];
+  });
   
+  store.sortedLabels = sorted
+
+}
+
+function sortMembers(members){
+  var sorted = [];
+  for (var member in members) {
+    sorted.push([member, members[member].avatarHash, members[member].count]);
+  }
+
+  sorted.sort(function(a, b) {
+    return b[2] - a[2];
+  });
   
-  
-// Trello.get(`/labels/${label}`, getLabelSuccess, (msg)=>{console.log(msg)})
-// 
-// function getLabelSuccess(data){
-//   debugger
-//   if (store.labels[data.name] == undefined){
-//     store.labels[data.name] = {}
-//     store.labels[data.name].color = data.color
-//     store.labels[data.name].count = 1
-//   } else {
-//     store.labels[data.name].count += 1
-//   }
-// }
+  store.sortedMembers = sorted
+
+}
+
+function showLoader(){
+  $("#totals-data").html("")
+  $("#totals-data").html("<img src='https://i.imgur.com/vUz7Lmp.gif'>")
+}
   
   // Trello.get('/boards/53bee3e719ab8748f95368d9/labels', function(data){ console.log(data) }
