@@ -19,7 +19,7 @@ $(document).ready(function(){
   var div = document.createElement("div");
   div.id = "totals-container"
   $(div).addClass('hidden')
-  document.querySelector(".mod-left").append(div)
+  $(".mod-left").append(div)
   
   var p = document.createElement("p")
   p.id = "unauthorized-msg"
@@ -31,15 +31,24 @@ $(document).ready(function(){
   button.style.display = "block"
   button.onclick = authorize
   button.innerHTML = "Authorize"
-  document.querySelector("#surface").append(button)
+  $("#surface").append(button)
+  
+  
+  
+  if(localStorage.getItem("trellect-authorized") == 'true'){
+    setTimeout(function(){
+      authorize()
+    }, 3000)
+  }
   
 })
 
 function authorize(){
   var authenticationSuccess = function() { 
     console.log('Successful authentication');
-    document.querySelector("#authorize-button").innerHTML = "Authorized!"
-    document.querySelector("#authorize-button").disabled = true
+    localStorage.setItem('trellect-authorized', true)
+    $("#authorize-button").html("Trellect Authorized!")
+    $("#authorize-button").prop('disabled', true);
     afterAuthorization()
   };
   var authenticationFailure = function() { console.log('Failed authentication'); };
@@ -64,16 +73,16 @@ function afterAuthorization(){
   a.id = "refresh-link"
   a.innerHTML = "Refresh"
   a.onclick = refresh
-  document.querySelector("#totals-container").append(a)
+  $("#totals-container").append(a)
   
   var div = document.createElement("div");
   div.id = "totals-nav"
-  $(div).html('<a id="labels-tab" onclick="showLabels()">Label</a><a id="members-tab" onclick="fetchMemberData()">Members</a>')
-  document.querySelector("#totals-container").append(div)
+  $(div).html('<a id="labels-tab" onclick="showLabels()">Labels</a><a id="members-tab" onclick="fetchMemberData()">Members</a>')
+  $("#totals-container").append(div)
   
   var div = document.createElement("div");
   div.id = "totals-data"
-  document.querySelector("#totals-container").append(div)
+  $("#totals-container").append(div)
   
   fetchLabelData()
 }
@@ -136,7 +145,7 @@ function fetchLabels(labelIds){
   return new Promise(function(resolve, reject){
     var counter = 0
     
-    for(var id in labelIds){
+    for(let id in labelIds){
       Trello.get(`/labels/${id}`, getLabelSuccess, apiError)
       
       function getLabelSuccess(data){
@@ -202,7 +211,7 @@ function fetchMembers(memberIds){
     return new Promise(function(resolve, reject){
       var counter = 0
       
-      for(var id in memberIds){
+      for(let id in memberIds){
         Trello.get(`/members/${id}`, getMemberSuccess, apiError)
         
         function getMemberSuccess(data){
@@ -269,12 +278,12 @@ function toggleTotals(){
 
 
 function apiError(){
-  document.querySelector("#totals-data").innerHTML = "<p>Rate limit exceeded. :( Try again in 10 seconds."
+  $("#totals-data").html("<p>Rate limit exceeded. :( Try again in 10 seconds.")
 }
 
 function sortLabels(labels){
   var sorted = [];
-  for (var label in labels) {
+  for (let label in labels) {
     sorted.push([label, labels[label].color, labels[label].count]);
   }
 
@@ -288,7 +297,7 @@ function sortLabels(labels){
 
 function sortMembers(members){
   var sorted = [];
-  for (var member in members) {
+  for (let member in members) {
     sorted.push([member, members[member].avatarHash, members[member].count]);
   }
 
@@ -304,5 +313,3 @@ function showLoader(){
   $("#totals-data").html("")
   $("#totals-data").html("<img src='https://i.imgur.com/vUz7Lmp.gif'>")
 }
-  
-  // Trello.get('/boards/53bee3e719ab8748f95368d9/labels', function(data){ console.log(data) }
