@@ -2,6 +2,10 @@
     content: "\e932";
 }
 
+#loader {
+  width: 100%;
+}
+
 .hidden {
   visibility: hidden;
 }
@@ -25,12 +29,13 @@
 }
 
 #totals-container a {
-  width: 100%;
   display: block;
 }
 
 #refresh-link {
+  margin: 0 auto;
   text-align: center;
+  width: 15%;
 }
 
 #totals-nav {

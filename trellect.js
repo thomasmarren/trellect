@@ -31,9 +31,7 @@ $(document).ready(function(){
   button.style.display = "block"
   button.onclick = authorize
   button.innerHTML = "Authorize"
-  $("#surface").append(button)
-  
-  
+  $("#totals-container").append(button)
   
   if(localStorage.getItem("trellect-authorized") == 'true'){
     setTimeout(function(){
@@ -47,8 +45,6 @@ function authorize(){
   var authenticationSuccess = function() { 
     console.log('Successful authentication');
     localStorage.setItem('trellect-authorized', true)
-    $("#authorize-button").html("Trellect Authorized!")
-    $("#authorize-button").prop('disabled', true);
     afterAuthorization()
   };
   var authenticationFailure = function() { console.log('Failed authentication'); };
@@ -311,5 +307,5 @@ function sortMembers(members){
 
 function showLoader(){
   $("#totals-data").html("")
-  $("#totals-data").html("<img src='https://i.imgur.com/vUz7Lmp.gif'>")
+  $("#totals-data").html("<img id='loader' src='http://rewardian.com/images/load-page.gif'>")
 }
