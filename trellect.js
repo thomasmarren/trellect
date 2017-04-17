@@ -1,10 +1,22 @@
 var store = {
+  backlog: {
+    labelIds: {},
+    labels: {},
+    sortedLabels: [],
+    memberIds: {}
+  },
+  sprint: {
+    labelIds: {},
+    labels: {},
+    sortedLabels: [],
+    memberIds: {}
+  },
+  labelIds: {},
   labels: {},
   sortedLabels: [],
-  labelIds: {},
+  memberIds: {},
   members: {},
-  sortedMembers: [],
-  memberIds: {}
+  sortedMembers: []
 }
 
 $(document).ready(function(){
@@ -12,9 +24,8 @@ $(document).ready(function(){
   a.style.display = "inline";
   a.id = 'toggle-totals-button';
   $(a).addClass('board-header-btn')
-  a.onclick = toggleTotals
-  a.innerHTML = "<span class='icon-sm icon-totals-class board-header-btn-icon'></span><span class='board-header-btn-text'>Totals</span>"
-  document.querySelector(".mod-left").append(a)
+  a.innerHTML = "<span class='icon-sm icon-totals-class board-header-btn-icon'></span><span id='totals-button-text' class='board-header-btn-text'>Loading...</span>"
+  $(".mod-left").append(a)
 
   var div = document.createElement("div");
   div.id = "totals-container"
@@ -25,18 +36,21 @@ $(document).ready(function(){
   p.id = "unauthorized-msg"
   p.innerHTML = "Please authorize Trello first!"
   $("#totals-container").append(p)
-
-  var button = document.createElement("button");
-  button.id = "authorize-button"
-  button.style.display = "block"
-  button.onclick = authorize
-  button.innerHTML = "Authorize"
-  $("#totals-container").append(button)
   
   if(localStorage.getItem("trellect-authorized") == 'true'){
     setTimeout(function(){
+      $('#toggle-totals-button').click(toggleTotals)
       authorize()
     }, 3000)
+  } else {
+    $("#totals-button-text").html('Authorize Trellect')
+    $('#toggle-totals-button').click(toggleTotals)
+    var button = document.createElement("button");
+    button.id = "authorize-button"
+    button.style.display = "block"
+    button.onclick = authorize
+    button.innerHTML = "Authorize"
+    $("#totals-container").append(button)
   }
   
 })
@@ -67,7 +81,7 @@ function afterAuthorization(){
   
   var a = document.createElement("a");
   a.id = "refresh-link"
-  a.innerHTML = "Refresh"
+  a.innerHTML = "<span class='icon-sm icon-totals-refresh'></span>"
   a.onclick = refresh
   $("#totals-container").append(a)
   
@@ -99,11 +113,57 @@ function fetchCards(){
         if(i == data.length){
           done()
         } else {
+          if (data[i].idList == "56128873d680aae0cc12293c"){
+            data[i].idLabels.forEach( label => {
+              if(store.backlog.labelIds[label] == undefined){
+                store.backlog.labelIds[label] = {}
+                store.backlog.labelIds[label].count = 1
+                let points = addPoints(store.backlog.labelIds[label].points, data[i].name, true)
+                store.backlog.labelIds[label].points = points
+              } else {
+                store.backlog.labelIds[label].count += 1
+                let points = addPoints(store.backlog.labelIds[label].points, data[i].name, false)
+                store.backlog.labelIds[label].points = points
+              }
+            })
+            data[i].idMembers.forEach( member => {
+              if(store.backlog.memberIds[member] == undefined){
+                store.backlog.memberIds[member] = 1
+              } else {
+                store.backlog.memberIds[member] += 1
+              }
+            })
+          } else {
+            data[i].idLabels.forEach( label => {
+              if(store.sprint.labelIds[label] == undefined){
+                store.sprint.labelIds[label] = {}
+                store.sprint.labelIds[label].count = 1
+                let points = addPoints(store.sprint.labelIds[label].points, data[i].name, true)
+                store.sprint.labelIds[label].points = points
+              } else {
+                store.sprint.labelIds[label].count += 1
+                let points = addPoints(store.sprint.labelIds[label].points, data[i].name, false)
+                store.sprint.labelIds[label].points = points
+              }
+            })
+            data[i].idMembers.forEach( member => {
+              if(store.sprint.memberIds[member] == undefined){
+                store.sprint.memberIds[member] = 1
+              } else {
+                store.sprint.memberIds[member] += 1
+              }
+            })
+          }
           data[i].idLabels.forEach( label => {
             if(store.labelIds[label] == undefined){
-              store.labelIds[label] = 1
+              store.labelIds[label] = {}
+              store.labelIds[label].count = 1
+              let points = addPoints(store.labelIds[label].points, data[i].name, true)
+              store.labelIds[label].points = points
             } else {
-              store.labelIds[label] += 1
+              store.labelIds[label].count += 1
+              let points = addPoints(store.labelIds[label].points, data[i].name, true)
+              store.labelIds[label].points = points
             }
           })
           data[i].idMembers.forEach( member => {
@@ -130,6 +190,7 @@ function fetchLabelData(){
   
   fetchCards().then(fetchLabels).then(function(){
     showLabels()
+    $('#totals-button-text').html('Totals')
   })
   
 }
@@ -146,13 +207,35 @@ function fetchLabels(labelIds){
       
       function getLabelSuccess(data){
         
-        store.labels[data.name] = {}
-        store.labels[data.name].color = data.color
-        store.labels[data.name].count = store.labelIds[data.id]
+        store.sprint.labels[data.name] = {}
+        store.sprint.labels[data.name].color = data.color
+        store.sprint.labels[data.name].count = store.sprint.labelIds[data.id].count
+        store.sprint.labels[data.name].points = store.sprint.labelIds[data.id].points
 
         counter += 1
         if(counter == Object.keys(labelIds).length){
-          done()
+          fetchBacklog(store.backlog.labelIds)
+        }
+      }
+    }
+    
+    function fetchBacklog(labelIds){
+      var counter = 0
+      
+      for(let id in labelIds){
+        Trello.get(`/labels/${id}`, getLabelSuccess, apiError)
+        
+        function getLabelSuccess(data){
+          
+          store.backlog.labels[data.name] = {}
+          store.backlog.labels[data.name].color = data.color
+          store.backlog.labels[data.name].count = store.backlog.labelIds[data.id].count
+          store.backlog.labels[data.name].points = store.backlog.labelIds[data.id].points
+
+          counter += 1
+          if(counter == Object.keys(labelIds).length){
+            done()
+          }
         }
       }
     }
@@ -168,23 +251,33 @@ function showLabels(){
   
   console.log("Displaying labels")
   
-  sortLabels(store.labels)
+  sortLabels(store.sprint.labels)
+  sortBacklogLabels(store.backlog.labels)
   
   $('#totals-data').html('')
   
-  store.sortedLabels.forEach( label => {
-    
+  $('#totals-data').append('<p class="category"><strong>Sprint</strong></p>')
+  
+  store.sprint.sortedLabels.forEach( label => {
     var div = document.createElement("div");
-    var span = document.createElement("span");
-    $(span).addClass(`totals-label-color card-label-${label[1]}`)
-    var p = document.createElement("p");
-    $(p).addClass(`totals-label`)
-    p.innerHTML = `${label[0]}: ${label[2]}`
-    div.append(span)
-    div.append(p)
-    document.querySelector("#totals-data").append(div)
-    
+    $(div).addClass("label-container")
+    $(div).html(`
+      <p>${label[3]}</p><p>${label[2]}</p><span class="totals-label-color card-label-${label[1]}"></span><p>${label[0]}</p>
+    `)
+    $("#totals-data").append(div)
   })
+  
+  $('#totals-data').append('<p class="category"><strong>Backlog</strong></p>')
+  
+  store.backlog.sortedLabels.forEach( label => {
+    var div = document.createElement("div");
+    $(div).addClass("label-container")
+    $(div).html(`
+      <p>${label[3]}</p><p>${label[2]}</p><span class="totals-label-color card-label-${label[1]}"></span><p>${label[0]}</p>
+    `)
+    $("#totals-data").append(div)
+  })
+  
 }
 
 
@@ -260,10 +353,24 @@ function showMembers(){
 function refresh(){
   console.log('Refreshing totals')
   store = {
+    backlog: {
+      labelIds: {},
+      labels: {},
+      sortedLabels: [],
+      memberIds: {}
+    },
+    sprint: {
+      labelIds: {},
+      labels: {},
+      sortedLabels: [],
+      memberIds: {}
+    },
+    labelIds: {},
     labels: {},
-    labelIds: [],
+    sortedLabels: [],
+    memberIds: {},
     members: {},
-    memberIds: []
+    sortedMembers: []
   }
   fetchLabelData()
 }
@@ -277,17 +384,46 @@ function apiError(){
   $("#totals-data").html("<p>Rate limit exceeded. :( Try again in 10 seconds.")
 }
 
+function addPoints(points, cardName, newKey){
+  var regExp = /\(([^)]+)\)/;
+  var match = regExp.exec(cardName);
+  if(match != null){
+    if(newKey){
+      points = parseInt(match[1])
+    } else {
+      points += parseInt(match[1])
+    }
+  } else {
+    points = 0
+  }
+  return points
+}
+
 function sortLabels(labels){
   var sorted = [];
   for (let label in labels) {
-    sorted.push([label, labels[label].color, labels[label].count]);
+    sorted.push([label, labels[label].color, labels[label].count, labels[label].points]);
   }
 
   sorted.sort(function(a, b) {
     return b[2] - a[2];
   });
   
-  store.sortedLabels = sorted
+  store.sprint.sortedLabels = sorted
+
+}
+
+function sortBacklogLabels(labels){
+  var sorted = [];
+  for (let label in labels) {
+    sorted.push([label, labels[label].color, labels[label].count, labels[label].points]);
+  }
+
+  sorted.sort(function(a, b) {
+    return b[2] - a[2];
+  });
+  
+  store.backlog.sortedLabels = sorted
 
 }
 

@@ -1,5 +1,21 @@
 .icon-totals-class:before {
-    content: "\e932";
+  content: "\e932";
+}
+
+.icon-totals-refresh {
+  background-clip: content-box;
+  background-origin: content-box;
+  font-size: 12pt;
+  color: black;
+  padding: 6px;
+  margin: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.icon-totals-refresh:before {
+  content: "\e945";
 }
 
 #loader {
@@ -10,7 +26,11 @@
   visibility: hidden;
 }
 
-#refresh-link:hover, #labels-tab:hover, #members-tab:hover {
+#refresh-link:hover {
+  cursor: pointer;
+}
+
+#labels-tab:hover, #members-tab:hover {
   cursor: pointer;
   text-decoration: underline;
 }
@@ -32,12 +52,6 @@
   display: block;
 }
 
-#refresh-link {
-  margin: 0 auto;
-  text-align: center;
-  width: 15%;
-}
-
 #totals-nav {
   text-align: center;
   display: block;
@@ -47,6 +61,12 @@
   display: inline-block;
   width: 10%;
   margin: 10px;
+}
+
+.category {
+  margin: 10px 0px;
+  text-align: center;
+  font-size: 1.2em;
 }
 
 .totals-label-color {
@@ -67,8 +87,13 @@
   display: inline-block;
 }
 
-.totals-label {
+.label-container {
   display: inline-block;
+  text-align: center;
+  vertical-align: top;
+  margin: 0 10px;
+  width: 100px;
+  height: 120px;
 }
 
 .members-list {
