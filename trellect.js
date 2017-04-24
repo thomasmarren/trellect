@@ -4,7 +4,9 @@ var store = {
       labelIds: {},
       labels: {},
       sortedLabels: [],
-      memberIds: {}
+      memberIds: {},
+      totalCount: 0,
+      totalPoints: 0
     },
     sprint: {
       labelIds: {},
@@ -241,6 +243,8 @@ function fetchSprintLabels(labelIds){
           store.currentSprint.backlog.labels[data.name].color = data.color
           store.currentSprint.backlog.labels[data.name].count = store.currentSprint.backlog.labelIds[data.id].count
           store.currentSprint.backlog.labels[data.name].points = store.currentSprint.backlog.labelIds[data.id].points
+          store.currentSprint.backlog.totalCount += store.currentSprint.backlog.labelIds[data.id].count
+          store.currentSprint.backlog.totalPoints += store.currentSprint.backlog.labelIds[data.id].points
 
           counter += 1
           if(counter == Object.keys(labelIds).length){
@@ -267,26 +271,44 @@ function showLabels(){
   $('#totals-data').html('')
   
   $('#totals-data').append('<p class="category"><strong>Sprint</strong></p>')
+  $('#totals-data').append("<table id='sprint-labels' class='trellect-table'><tr><th></th><th>Department</th><th>Count</th><th>Count %</th><th>Points</th><th>Points %</th></tr>")
   
   store.currentSprint.sprint.sortedLabels.forEach( label => {
-    var div = document.createElement("div");
-    $(div).addClass("label-container")
-    $(div).html(`
-      <p>${label[3]}</p><p>${label[2]}</p><span class="totals-label-color card-label-${label[1]}"></span><p>${label[0]}</p>
+    
+    $('#sprint-labels').append(`
+    <tr>
+    <td class='card-label-${label[1]}'></td>
+    <td>${label[0]}</td>
+    <td>${label[2]}</td>
+    <td>${percentage(label[2], store.currentSprint.sprint.totalCount)}%</td>
+    <td>${label[3]}</td>
+    <td>${percentage(label[3], store.currentSprint.sprint.totalPoints)}%</td>
+    </tr>
     `)
-    $("#totals-data").append(div)
   })
   
   $('#totals-data').append('<p class="category"><strong>Backlog</strong></p>')
+  $('#totals-data').append("<table id='backlog-labels' class='trellect-table'><tr><th></th><th>Department</th><th>Count</th><th>Count %</th><th>Points</th><th>Points %</th></tr>")
   
   store.currentSprint.backlog.sortedLabels.forEach( label => {
-    var div = document.createElement("div");
-    $(div).addClass("label-container")
-    $(div).html(`
-      <p>${label[3]}</p><p>${label[2]}</p><span class="totals-label-color card-label-${label[1]}"></span><p>${label[0]}</p>
+    $('#backlog-labels').append(`
+    <tr>
+    <td class='card-label-${label[1]}'></td>
+    <td>${label[0]}</td>
+    <td>${label[2]}</td>
+    <td>${percentage(label[2], store.currentSprint.backlog.totalCount)}%</td>
+    <td>${label[3]}</td>
+    <td>${percentage(label[3], store.currentSprint.backlog.totalPoints)}%</td>
+    </tr>
     `)
-    $("#totals-data").append(div)
   })
+  
+  function percentage(value, total){
+    if(total == 0){
+      return 0
+    }
+    return Math.round((parseInt(value) / total) * 100)
+  }
   
 }
 
@@ -477,7 +499,9 @@ function refresh(){
         labelIds: {},
         labels: {},
         sortedLabels: [],
-        memberIds: {}
+        memberIds: {},
+        totalCount: 0,
+        totalPoints: 0
       },
       sprint: {
         labelIds: {},

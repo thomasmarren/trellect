@@ -63,18 +63,14 @@
   margin: 10px;
 }
 
-.category {
-  margin: 10px 0px;
-  text-align: center;
-  font-size: 1.2em;
+.trellect-table td {
+  margin: 2px;
 }
 
-.totals-label-color {
-  margin: 0px 3px;
-  width: 42px;
-  height: 8px;
-  display: inline-block;
-  border-radius: 3px;
+.category {
+  margin: 20px 0px 10px;
+  text-align: center;
+  font-size: 1.2em;
 }
 
 #totals-data {
@@ -88,12 +84,14 @@
 }
 
 .label-container {
-  display: inline-block;
-  text-align: center;
+  display: block;
   vertical-align: top;
   margin: 0 10px;
-  width: 100px;
-  height: 120px;
+}
+
+.label-container p, .label-container span {
+  display: inline-block;
+  margin: 0 5px;
 }
 
 .members-list {
