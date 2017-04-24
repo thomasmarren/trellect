@@ -10,7 +10,9 @@ var store = {
       labelIds: {},
       labels: {},
       sortedLabels: [],
-      memberIds: {}
+      memberIds: {},
+      totalCount: 0,
+      totalPoints: 0
     },
     labelIds: {},
     labels: {},
@@ -126,7 +128,6 @@ function fetchSprintCards(){
     function getCardsSuccess(data){
       
       for(let i = 0; i < data.length + 1; i++){
-        
         if(i == data.length){
           done()
         } else {
@@ -135,7 +136,7 @@ function fetchSprintCards(){
               if(store.currentSprint.backlog.labelIds[label] == undefined){
                 store.currentSprint.backlog.labelIds[label] = {}
                 store.currentSprint.backlog.labelIds[label].count = 1
-                let points = addPoints(store.currentSprint.backlog.labelIds[label].points, data[i].name, true)
+                let points = addPoints(0, data[i].name, true)
                 store.currentSprint.backlog.labelIds[label].points = points
               } else {
                 store.currentSprint.backlog.labelIds[label].count += 1
@@ -155,7 +156,7 @@ function fetchSprintCards(){
               if(store.currentSprint.sprint.labelIds[label] == undefined){
                 store.currentSprint.sprint.labelIds[label] = {}
                 store.currentSprint.sprint.labelIds[label].count = 1
-                let points = addPoints(store.currentSprint.sprint.labelIds[label].points, data[i].name, true)
+                let points = addPoints(0, data[i].name, true)
                 store.currentSprint.sprint.labelIds[label].points = points
               } else {
                 store.currentSprint.sprint.labelIds[label].count += 1
@@ -175,7 +176,7 @@ function fetchSprintCards(){
             if(store.currentSprint.labelIds[label] == undefined){
               store.currentSprint.labelIds[label] = {}
               store.currentSprint.labelIds[label].count = 1
-              let points = addPoints(store.currentSprint.labelIds[label].points, data[i].name, true)
+              let points = addPoints(0, data[i].name, true)
               store.currentSprint.labelIds[label].points = points
             } else {
               store.currentSprint.labelIds[label].count += 1
@@ -194,7 +195,7 @@ function fetchSprintCards(){
       }
       
       function done(){
-        resolve(store.currentSprint.labelIds)
+        resolve(store.currentSprint.sprint.labelIds)
       }
     }
     
@@ -214,9 +215,12 @@ function fetchSprintLabels(labelIds){
       function getLabelSuccess(data){
         
         store.currentSprint.sprint.labels[data.name] = {}
+        store.currentSprint.sprint.labels[data.name].id = id
         store.currentSprint.sprint.labels[data.name].color = data.color
         store.currentSprint.sprint.labels[data.name].count = store.currentSprint.sprint.labelIds[data.id].count
         store.currentSprint.sprint.labels[data.name].points = store.currentSprint.sprint.labelIds[data.id].points
+        store.currentSprint.sprint.totalCount += store.currentSprint.sprint.labelIds[data.id].count
+        store.currentSprint.sprint.totalPoints += store.currentSprint.sprint.labelIds[data.id].points
 
         counter += 1
         if(counter == Object.keys(labelIds).length){
@@ -479,7 +483,9 @@ function refresh(){
         labelIds: {},
         labels: {},
         sortedLabels: [],
-        memberIds: {}
+        memberIds: {},
+        totalCount: 0,
+        totalPoints: 0
       },
       labelIds: {},
       labels: {},
@@ -505,15 +511,13 @@ function apiError(){
 
 function addPoints(points, cardName, newKey){
   var regExp = /\(([^)]+)\)/;
-  var match = regExp.exec(cardName);
+  var match = regExp.exec(cardName.substring(0,3));
   if(match != null){
     if(newKey){
       points = parseInt(match[1])
     } else {
       points += parseInt(match[1])
     }
-  } else {
-    points = 0
   }
   return points
 }
