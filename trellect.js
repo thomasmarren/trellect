@@ -1,4 +1,6 @@
 var store = {
+  allSprintLabels: {},
+  allArchiveLabels: {},
   currentSprint: {
     backlog: {
       labelIds: {},
@@ -23,8 +25,12 @@ var store = {
     members: {},
     sortedMembers: []  
   },
-  archive: {},
-  archiveTotalLabels: 0
+  archive: {
+    lists: {},
+    labels: {},
+    totalCount: 0,
+    totalPoints: 0
+  }
 }
 
 $(document).ready(function(){
@@ -109,13 +115,46 @@ function fetchInitialData(){
   
   showLoader()
   
-  fetchSprintCards()
+  fetchAllLabels()
+  .then(fetchSprintCards)
   .then(fetchSprintLabels)
+  .then(fetchBacklogLabels)
+  .then(fetchArchiveLists)
+  .then(fetchArchiveLabels)
   .then(function(){
     showLabels()
     $('#totals-button-text').html('Totals')
   })
   
+}
+
+function fetchAllLabels(){
+  
+    console.log("Fetching all labels")
+    
+    return new Promise(function(resolve, reject){
+      
+      Trello.get('/boards/53bee3e719ab8748f95368d9/labels', getSprintLabelsSuccess, apiError)
+      .then( () => {
+        Trello.get('/boards/5755d13e338da3121111d199/labels', getArchiveLabelsSuccess, apiError).then(resolve)
+      })
+      
+      function getSprintLabelsSuccess(data){
+        data.forEach( label => {          
+          store.allSprintLabels[label.id] = {}
+          store.allSprintLabels[label.id].name = label.name
+          store.allSprintLabels[label.id].color = label.color
+        })
+      }
+      
+      function getArchiveLabelsSuccess(data){
+        data.forEach( label => {          
+          store.allArchiveLabels[label.id] = {}
+          store.allArchiveLabels[label.id].name = label.name
+          store.allArchiveLabels[label.id].color = label.color
+        })
+      }
+    })
 }
 
 
@@ -125,14 +164,11 @@ function fetchSprintCards(){
   
   return new Promise(function(resolve, reject){
     
-    Trello.get('/boards/53bee3e719ab8748f95368d9/cards', getCardsSuccess, apiError)
+    Trello.get('/boards/53bee3e719ab8748f95368d9/cards', getCardsSuccess, apiError).then(resolve)
     
     function getCardsSuccess(data){
       
-      for(let i = 0; i < data.length + 1; i++){
-        if(i == data.length){
-          done()
-        } else {
+      for(let i = 0; i < data.length; i++){
           if (data[i].idList == "56128873d680aae0cc12293c"){
             data[i].idLabels.forEach( label => {
               if(store.currentSprint.backlog.labelIds[label] == undefined){
@@ -194,76 +230,57 @@ function fetchSprintCards(){
             }
           })
         }
-      }
-      
-      function done(){
-        resolve(store.currentSprint.sprint.labelIds)
-      }
     }
     
   })
 }
 
-function fetchSprintLabels(labelIds){
+function fetchSprintLabels(){
 
   console.log("Fetching sprint labels")
   
   return new Promise(function(resolve, reject){
-    var counter = 0
-    
-    for(let id in labelIds){
-      Trello.get(`/labels/${id}`, getLabelSuccess, apiError)
+    var sprintLabelIds = store.currentSprint.sprint.labelIds
+    for(let id in sprintLabelIds){
+      let label = store.allSprintLabels[id]
       
-      function getLabelSuccess(data){
-        
-        store.currentSprint.sprint.labels[data.name] = {}
-        store.currentSprint.sprint.labels[data.name].id = id
-        store.currentSprint.sprint.labels[data.name].color = data.color
-        store.currentSprint.sprint.labels[data.name].count = store.currentSprint.sprint.labelIds[data.id].count
-        store.currentSprint.sprint.labels[data.name].points = store.currentSprint.sprint.labelIds[data.id].points
-        store.currentSprint.sprint.totalCount += store.currentSprint.sprint.labelIds[data.id].count
-        store.currentSprint.sprint.totalPoints += store.currentSprint.sprint.labelIds[data.id].points
+      store.currentSprint.sprint.labels[label.name] = {}
+      store.currentSprint.sprint.labels[label.name].id = id
+      store.currentSprint.sprint.labels[label.name].color = label.color
+      store.currentSprint.sprint.labels[label.name].count = store.currentSprint.sprint.labelIds[id].count
+      store.currentSprint.sprint.labels[label.name].points = store.currentSprint.sprint.labelIds[id].points
+      store.currentSprint.sprint.totalCount += store.currentSprint.sprint.labelIds[id].count
+      store.currentSprint.sprint.totalPoints += store.currentSprint.sprint.labelIds[id].points
+    }
+    resolve()
+  })
+}
 
-        counter += 1
-        if(counter == Object.keys(labelIds).length){
-          fetchBacklog(store.currentSprint.backlog.labelIds)
-        }
-      }
-    }
+function fetchBacklogLabels(){
+  
+  console.log("Fetching backlog labels")
+  
+  return new Promise(function(resolve, reject){
+    var backlogLabelIds = store.currentSprint.backlog.labelIds
     
-    function fetchBacklog(labelIds){
-      var counter = 0
-      
-      for(let id in labelIds){
-        Trello.get(`/labels/${id}`, getLabelSuccess, apiError)
-        
-        function getLabelSuccess(data){
-          
-          store.currentSprint.backlog.labels[data.name] = {}
-          store.currentSprint.backlog.labels[data.name].color = data.color
-          store.currentSprint.backlog.labels[data.name].count = store.currentSprint.backlog.labelIds[data.id].count
-          store.currentSprint.backlog.labels[data.name].points = store.currentSprint.backlog.labelIds[data.id].points
-          store.currentSprint.backlog.totalCount += store.currentSprint.backlog.labelIds[data.id].count
-          store.currentSprint.backlog.totalPoints += store.currentSprint.backlog.labelIds[data.id].points
-
-          counter += 1
-          if(counter == Object.keys(labelIds).length){
-            done()
-          }
-        }
-      }
-    }
+    for(let id in backlogLabelIds){
+      let label = store.allSprintLabels[id]
     
-    function done(){
-      resolve()
+      store.currentSprint.backlog.labels[label.name] = {}
+      store.currentSprint.backlog.labels[label.name].id = id
+      store.currentSprint.backlog.labels[label.name].color = label.color
+      store.currentSprint.backlog.labels[label.name].count = store.currentSprint.backlog.labelIds[id].count
+      store.currentSprint.backlog.labels[label.name].points = store.currentSprint.backlog.labelIds[id].points
+      store.currentSprint.backlog.totalCount += store.currentSprint.backlog.labelIds[id].count
+      store.currentSprint.backlog.totalPoints += store.currentSprint.backlog.labelIds[id].points
     }
-    
+    resolve()
   })
 }
 
 function showLabels(){
   
-  console.log("Displaying labels")
+  console.log("Displaying sprint labels")
   
   store.currentSprint.sprint.sortedLabels = sortLabels(store.currentSprint.sprint.labels)
   store.currentSprint.backlog.sortedLabels = sortLabels(store.currentSprint.backlog.labels)
@@ -303,6 +320,8 @@ function showLabels(){
     `)
   })
   
+  showArchiveLabels()
+  
   function percentage(value, total){
     if(total == 0){
       return 0
@@ -313,113 +332,123 @@ function showLabels(){
 }
 
 
+function fetchArchiveLists(){
+  
+  console.log("Fetching archive card data")
+  
+  return new Promise(function(resolve, reject){
+    
+    Trello.get('/boards/5755d13e338da3121111d199/lists', getListsSuccess, apiError)
+    
+    function getListsSuccess(data){
+      store.archive.name = data[0].name
+      store.archive.lists[data[0].id] = {
+        name: data[0].name,
+        labelIds: {},
+        labels: {},
+        sortedLabels: []
+      }
+      fetchCards()
+    }
+    
+    function fetchCards(){
+      
+      var lists = store.archive.lists
+      
+      for(let list in lists){
+        Trello.get(`/lists/${list}/cards`, getCardsSuccess, apiError)
+      }
+      
+      function getCardsSuccess(data){
+        
+        for(let i = 0; i < data.length + 1; i++){
+          if(i == data.length){
+            done()
+          } else {
+            data[i].idLabels.forEach( label => {
+              if(store.archive.lists[data[i].idList].labelIds[label] == undefined){
+                store.archive.lists[data[i].idList].labelIds[label] = {}
+                store.archive.lists[data[i].idList].labelIds[label].count = 1
+                let points = addPoints(0, data[i].name, true)
+                store.archive.lists[data[i].idList].labelIds[label].points = points
+              } else {
+                store.archive.lists[data[i].idList].labelIds[label].count += 1
+                let points = addPoints(store.archive.lists[data[i].idList].labelIds[label].points, data[i].name, true)
+                store.archive.lists[data[i].idList].labelIds[label].points = points
+              }
+            })
+          }
+        }
+        
+        function done(){
+          resolve()
+        }
+      }
+      
+    }
+  })
+}
 
-// function fetchArchiveCards(){
-//   
-//   console.log("Fetching archive card data")
-//   
-//   return new Promise(function(resolve, reject){
-//     
-//     Trello.get('/boards/5755d13e338da3121111d199/lists', getListsSuccess, apiError)
-//     
-//     function getListsSuccess(data){
-//       for(let i = 0; i < 4; i++){
-//         if(i == 3){
-//           fetchCards()
-//         } else {
-//           store.archive[data[i].id] = {
-//             name: data[i].name,
-//             labelIds: {},
-//             labels: {},
-//             sortedLabels: []
-//           }
-//         }
-//       }
-//     }
-//     
-//     function fetchCards(){
-//       
-//       var lists = store.archive
-//       
-//       for(let list in store.archive){
-//         Trello.get(`/lists/${list}/cards`, getCardsSuccess, apiError)
-//       }
-//       
-//       function getCardsSuccess(data){
-//         
-//         for(let i = 0; i < data.length + 1; i++){
-//           if(i == data.length){
-//             done()
-//           } else {
-//             data[i].idLabels.forEach( label => {
-//               store.archiveTotalLabels += 1
-//               if(store.archive[data[i].idList].labelIds[label] == undefined){
-//                 store.archive[data[i].idList].labelIds[label] = {}
-//                 store.archive[data[i].idList].labelIds[label].count = 1
-//                 let points = addPoints(store.archive[data[i].idList].labelIds[label].points, data[i].name, true)
-//                 store.archive[data[i].idList].labelIds[label].points = points
-//               } else {
-//                 store.archive[data[i].idList].labelIds[label].count += 1
-//                 let points = addPoints(store.archive[data[i].idList].labelIds[label].points, data[i].name, true)
-//                 store.archive[data[i].idList].labelIds[label].points = points
-//               }
-//             })
-//           }
-//         }
-//         
-//         function done(){
-//           resolve(store.archive)
-//         }
-//       }
-//       
-//     }
-//   })
-// }
-// 
-// function fetchArchiveLists(archiveLists){
-//   
-// }
-// 
-// function fetchArchiveLabels(archiveLists){
-//   
-//   console.log("Fetching archive labels")
-//   
-//   return new Promise(function(resolve, reject){
-//     
-//     var counter = 0
-//     
-//     for(let list in archiveLists){
-//       
-//       console.log("List" + list)
-//       
-//       var labelIds = store.archive[list].labelIds
-//       
-//       for(let id in labelIds){
-//         console.log(id)
-//         Trello.get(`/labels/${id}`, getLabelSuccess, apiError)
-//         
-//         function getLabelSuccess(data){
-//           
-//           store.archive[list].labels[data.name] = {}
-//           store.archive[list].labels[data.name].color = data.color
-//           store.archive[list].labels[data.name].count = store.archive[list].labels[data.name].count
-//           store.archive[list].labels[data.name].points = store.archive[list].labels[data.name].points
-//           
-//           console.log('counter ' + counter)
-//           counter += 1
-//           if(counter == store.archiveTotalLabels){
-//             console.log('done')
-//             done()
-//           }
-//         }
-//       }
-//     }
-//     
-//     function done(){
-//       resolve()
-//     }
-//   })
-// }
+function fetchArchiveLabels(){
+  
+  console.log("Fetching archive labels")
+  
+  return new Promise(function(resolve, reject){
+    
+    var archiveLists = store.archive.lists
+    
+    for(let list in archiveLists){
+      
+      var labelIds = store.archive.lists[list].labelIds
+      for(let id in labelIds){
+        let label = store.allArchiveLabels[id]
+        
+        store.archive.labels[label.name] = {}
+        store.archive.labels[label.name].id = id
+        store.archive.labels[label.name].color = label.color
+        store.archive.labels[label.name].count = store.archive.lists[list].labelIds[id].count
+        store.archive.labels[label.name].points = store.archive.lists[list].labelIds[id].points
+        store.archive.totalCount += store.archive.lists[list].labelIds[id].count
+        store.archive.totalPoints += store.archive.lists[list].labelIds[id].points
+      }
+      done()
+    }
+    
+    function done(){
+      resolve()
+    }
+  })
+}
+
+function showArchiveLabels(){
+  console.log("Displaying archive labels")
+  
+  store.archive.sortedLabels = sortLabels(store.archive.labels)
+  
+  $('#totals-data').append(`<p class="category"><strong>${store.archive.name}</strong></p>`)
+  $('#totals-data').append("<table id='archive-labels' class='trellect-table'><tr><th></th><th>Department</th><th>Count</th><th>Count %</th><th>Points</th><th>Points %</th></tr>")
+  
+  store.archive.sortedLabels.forEach( label => {
+    
+    $('#archive-labels').append(`
+    <tr>
+    <td class='card-label-${label[1]}'></td>
+    <td>${label[0]}</td>
+    <td>${label[2]}</td>
+    <td>${percentage(label[2], store.archive.totalCount)}%</td>
+    <td>${label[3]}</td>
+    <td>${percentage(label[3], store.archive.totalPoints)}%</td>
+    </tr>
+    `)
+  })
+  
+  function percentage(value, total){
+    if(total == 0){
+      return 0
+    }
+    return Math.round((parseInt(value) / total) * 100)
+  }
+}
 
 
 function fetchMemberData(){
@@ -494,6 +523,8 @@ function showMembers(){
 function refresh(){
   console.log('Refreshing totals')
   store = {
+    allSprintLabels: {},
+    allArchiveLabels: {},
     currentSprint: {
       backlog: {
         labelIds: {},
@@ -518,8 +549,12 @@ function refresh(){
       members: {},
       sortedMembers: []  
     },
-    archive: {},
-    archiveTotalLabels: 0
+    archive: {
+      lists: {},
+      labels: {},
+      totalCount: 0,
+      totalPoints: 0
+    }
   }
   fetchInitialData()
 }
